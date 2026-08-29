@@ -88,6 +88,47 @@ test("strict_min_version is at least 121 — below it the background page never 
   }
 });
 
+test("data collection is declared — AMO rejects the upload without it", () => {
+  // Not a warning: addons.mozilla.org fails the upload outright with
+  // `The "data_collection_permissions" property is missing.` It is required of
+  // every new Firefox extension, and the failure arrives at submission time --
+  // weeks after whoever dropped the key has stopped thinking about it.
+  //
+  // "none" is the honest answer, not an evasion: the only network destination
+  // is a loopback address the user types in, and AMO holds the add-on to the
+  // claim. Anything that later sends data off the machine must change this key
+  // in the same commit.
+  for (const t of TARGETS) {
+    const d = manifestOf(t).browser_specific_settings?.gecko?.data_collection_permissions;
+    assert.ok(d, `${t}: data_collection_permissions missing — AMO will reject this build`);
+    assert.ok(Array.isArray(d.required) && d.required.length > 0, `${t}: no required array`);
+  }
+});
+
+test("the gecko id is not a placeholder", () => {
+  // Permanent once AMO publishes it. Shipping `@localhost` means either living
+  // with it forever or re-listing as a different add-on and losing every
+  // install, and nothing downstream of submission can undo it.
+  for (const t of TARGETS) {
+    const id = manifestOf(t).browser_specific_settings.gecko.id;
+    assert.ok(
+      !/localhost|example|test|todo|changeme/i.test(id),
+      `${t}: gecko id is ${id} — a placeholder that cannot be changed after publishing`,
+    );
+  }
+});
+
+test("the version floor stays below the data-collection key's own floor", () => {
+  // data_collection_permissions arrived in Firefox 140, so web-ext warns that
+  // 121-139 ignore it. That is the intended trade: an unknown manifest key is
+  // ignored, not fatal, and raising the floor to 140 would drop nineteen
+  // releases of working browsers to silence a lint line.
+  for (const t of TARGETS) {
+    const v = parseInt(manifestOf(t).browser_specific_settings.gecko.strict_min_version, 10);
+    assert.ok(v < 140, `${t}: floor raised to ${v}, dropping Firefox ${v > 121 ? "121-" + (v - 1) : ""} for a warning`);
+  }
+});
+
 test("the CSP does not upgrade insecure requests", () => {
   // Firefox's DEFAULT MV3 CSP for extension pages includes
   // `upgrade-insecure-requests`, which rewrites `ws://` to `wss://` before the
