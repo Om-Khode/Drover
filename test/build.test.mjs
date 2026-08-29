@@ -23,7 +23,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
-import { join, dirname, relative } from "node:path";
+import { join, dirname, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 
@@ -267,6 +267,54 @@ test("the digest documented in PROTOCOL.md matches the file", () => {
     `PROTOCOL.md does not document the current digest ${actual}. A client ` +
       `implementer reading a stale digest cannot connect.`,
   );
+});
+
+test("every shipped file is reachable from the manifest", () => {
+  // A bundle nobody loads still ships to every user and lands in front of a
+  // store reviewer, who has to ask what it is. `content.js` was exactly that:
+  // built from `content/bridge.js`, which `background/page.js` already imports
+  // and esbuild already inlines, so the standalone copy had no manifest key
+  // naming it, no executeScript call loading it, and no way to run.
+  //
+  // Reachability, not a name blocklist: the next dead file will have a
+  // different name.
+  for (const t of TARGETS) {
+    const m = manifestOf(t);
+    // Manifest paths are always forward-slashed; `relative` is not on Windows.
+    const shipped = new Set(walk(dist(t)).map((f) => relative(dist(t), f).split(sep).join("/")));
+
+    const roots = [
+      "manifest.json", // the entry point itself; nothing names it, the browser reads it
+      ...(m.background?.scripts ?? []),
+      m.background?.service_worker,
+      m.action?.default_popup,
+      ...Object.values(m.icons ?? {}),
+      ...(m.content_scripts ?? []).flatMap((c) => [...(c.js ?? []), ...(c.css ?? [])]),
+    ].filter(Boolean);
+
+    const reached = new Set();
+    const queue = [...roots];
+    while (queue.length) {
+      const f = queue.shift();
+      if (reached.has(f) || !shipped.has(f)) continue;
+      reached.add(f);
+      if (/\.(png|jpg|gif|woff2?)$/.test(f)) continue;
+      const text = readFileSync(dist(t, f), "utf8");
+      for (const cand of shipped) {
+        if (reached.has(cand)) continue;
+        const base = cand.split("/").pop();
+        if (text.includes(cand) || text.includes(base)) queue.push(cand);
+      }
+    }
+
+    assert.ok(reached.size >= 4, `${t}: reachability walk found almost nothing`);
+    const orphans = [...shipped].filter((f) => !reached.has(f));
+    assert.deepEqual(
+      orphans, [],
+      `${t}: shipped but unreachable — no manifest key names them and nothing ` +
+        `loads them: ${orphans.join(", ")}`,
+    );
+  }
 });
 
 // ─── Host agnosticism ────────────────────────────────────────────────────

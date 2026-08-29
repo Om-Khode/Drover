@@ -30,10 +30,18 @@ const TARGETS = ["chromium", "firefox"];
 const src = (...p) => join(ROOT, "src", ...p);
 const dist = (t, ...p) => join(ROOT, "dist", t, ...p);
 
-/** Entry points bundled per target. Each becomes one classic script. */
+/**
+ * Entry points bundled per target. Each becomes one classic script.
+ *
+ * `content/bridge.js` is deliberately NOT here. It is imported by
+ * `background/page.js` and inlined into `background.js`, because its functions
+ * are handed to `executeScript({func})` rather than loaded as a file. Bundling
+ * it a second time shipped an unreferenced `content.js` to every user and to
+ * every store reviewer -- no manifest key named it, nothing injected it, and
+ * nothing but a reachability check would ever have noticed.
+ */
 const BUNDLES = [
   { entry: src("background", "index.js"), out: "background.js" },
-  { entry: src("content", "bridge.js"), out: "content.js" },
   { entry: src("popup", "popup.js"), out: "popup/popup.js" },
 ];
 
