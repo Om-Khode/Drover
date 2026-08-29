@@ -11,7 +11,8 @@
     "build": "node build/build.mjs",
     "test": "npm run build && node --test test/*.test.mjs",
     "test:only": "node --test test/*.test.mjs",
-    "package": "npm run build && npx --yes web-ext build --source-dir dist/firefox --artifacts-dir dist/artifacts --overwrite-dest && git archive --format=zip -o dist/artifacts/drover-source.zip HEAD"
+    "package": "npm run build && npx --yes web-ext build --source-dir dist/firefox --artifacts-dir dist/artifacts --overwrite-dest && git archive --format=zip -o dist/artifacts/drover-source.zip HEAD",
+    "demo": "node examples/test-server.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",

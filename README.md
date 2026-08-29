@@ -66,6 +66,18 @@ Firefox `about:debugging` -> **Load Temporary Add-on** -> `dist/firefox/manifest
 Paste the token your program minted, press Connect. Full walkthrough, permanent Firefox
 installs, and what each refusal means: **[docs/INSTALL.md](docs/INSTALL.md)**.
 
+**Nothing to connect it to yet?**
+
+```bash
+npm run demo
+```
+
+`examples/test-server.mjs` is a loopback server in Node built-ins alone -- no dependencies,
+nothing to install. It prints a token, accepts the handshake, reads the active tab, and then
+gives you a prompt: `query`, `click 4`, `fill 2 hello`, `goto <url>`. It is a demonstration,
+not a library -- but it is a hundred lines, and reading it is the fastest way to understand
+what writing a client involves.
+
 ## What it can do
 
 | Verb | |
