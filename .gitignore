@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.xpi
+*.crx
+*.pem
+.web-ext-artifacts/
+
+# Written for the implementation of this repo, not for its readers:
+# the design spec and its task-by-task plan both describe the first client
+# in detail and read as internal project management. Kept on disk, out of git.
+docs/SPEC.md
+docs/plans/

@@ -1,0 +1,53 @@
+<meta charset="utf-8">
+<title>Drover</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; padding: 14px; width: 300px;
+    font: 13px/1.45 system-ui, -apple-system, Segoe UI, sans-serif;
+  }
+  h1 { font-size: 13px; margin: 0 0 10px; letter-spacing: .02em; }
+  label { display: block; margin: 10px 0 3px; opacity: .75; font-size: 12px; }
+  input {
+    width: 100%; box-sizing: border-box; padding: 6px 8px;
+    font: inherit; font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+    border-radius: 5px; background: transparent; color: inherit;
+  }
+  button {
+    margin-top: 12px; width: 100%; padding: 7px;
+    font: inherit; border-radius: 5px; cursor: pointer;
+    border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+    background: color-mix(in srgb, currentColor 8%, transparent); color: inherit;
+  }
+  button.danger {
+    border-color: color-mix(in srgb, #c0392b 55%, transparent);
+    color: #c0392b;
+    background: transparent;
+  }
+  #status {
+    margin-top: 12px; font-size: 12px; opacity: .8;
+    white-space: pre-line;   /* describeState() puts the reason on its own line */
+  }
+  #status.err { opacity: 1; color: #c0392b; }
+  @media (prefers-color-scheme: dark) {
+    #status.err, button.danger { color: #ff8a75; }
+    button.danger { border-color: color-mix(in srgb, #ff8a75 45%, transparent); }
+  }
+</style>
+
+<h1>Drover</h1>
+
+<label for="url">Server</label>
+<input id="url" type="text" spellcheck="false" value="ws://127.0.0.1:8790/drover">
+
+<div id="token-row">
+  <label for="token">Token</label>
+  <input id="token" type="password" spellcheck="false" autocomplete="off"
+         placeholder="from the local program">
+</div>
+
+<button id="connect">Connect</button>
+<p id="status">Checking…</p>
+
+<script src="popup.js"></script>

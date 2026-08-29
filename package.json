@@ -1,0 +1,22 @@
+{
+  "name": "drover",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Drive the browser you already have open, from a local program, over a WebSocket.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node build/build.mjs",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "test:only": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "jsdom": "^30.0.1"
+  },
+  "dependencies": {
+    "webextension-polyfill": "^0.12.0"
+  }
+}
