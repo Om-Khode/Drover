@@ -28,6 +28,20 @@ holds no model, no planner, no task loop. Whatever connects to it supplies the i
 your program  ---- ws://127.0.0.1 ---->  Drover  ---->  the tab you are looking at
 ```
 
+<p align="center">
+  <img src="docs/images/drover-driving.png"
+       alt="A browser on the left with three tabs open -- Example Domain, Google, Brave -- and a
+            terminal on the right running the included example server. Its tabs.list reply names
+            those same three tabs with their ids, urls and titles; page.query below returns the
+            page's Learn more link with its role, name and bounds."
+       width="100%">
+</p>
+
+<p align="center">
+  <sub>The three tabs on the right are the three tabs on the left. No relaunch, no debug port --
+  that is an ordinary browser window, driven where it stands.</sub>
+</p>
+
 ## Why not CDP or WebDriver?
 
 | | Chrome DevTools Protocol | WebDriver BiDi | Drover |
