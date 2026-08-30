@@ -21,7 +21,7 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "drover@om-khode.github.io",
+      "id": "{80e4313f-5a05-4e4b-b76b-8efa855571f7}",
       "strict_min_version": "121.0",
       "data_collection_permissions": {
         "required": [

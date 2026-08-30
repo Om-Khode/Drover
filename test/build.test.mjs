@@ -105,8 +105,21 @@ test("data collection is declared — AMO rejects the upload without it", () => 
   }
 });
 
-test("the gecko id is not a placeholder", () => {
-  // Permanent once AMO publishes it. Shipping `@localhost` means either living
+/**
+ * IDs that can never be used again.
+ *
+ * Deleting an add-on on addons.mozilla.org does NOT release its ID — AMO blocks
+ * the GUID permanently so nobody can re-register it, including its author. An
+ * upload carrying one of these fails with "Duplicate add-on ID found", and the
+ * listing that would explain why is gone, so the error names a conflict with
+ * something that no longer appears anywhere in the account.
+ *
+ * Append on the next burn; never remove an entry.
+ */
+const BURNED_IDS = ["drover@om-khode.github.io"];
+
+test("the gecko id is neither a placeholder nor a burned one", () => {
+  // Permanent once AMO accepts it. Shipping `@localhost` means either living
   // with it forever or re-listing as a different add-on and losing every
   // install, and nothing downstream of submission can undo it.
   for (const t of TARGETS) {
@@ -114,6 +127,12 @@ test("the gecko id is not a placeholder", () => {
     assert.ok(
       !/localhost|example|test|todo|changeme/i.test(id),
       `${t}: gecko id is ${id} — a placeholder that cannot be changed after publishing`,
+    );
+    assert.ok(
+      !BURNED_IDS.includes(id),
+      `${t}: gecko id ${id} belonged to a deleted AMO listing. Deleting an add-on ` +
+        `blocks its ID forever, so every upload using it is refused as a duplicate ` +
+        `of a listing that no longer exists.`,
     );
   }
 });
