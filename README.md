@@ -60,6 +60,9 @@ npm run build      # -> dist/chromium/ and dist/firefox/
 npm test
 ```
 
+Node 20+, any OS. Requirements, what each build step does and how to verify a build matches a
+published package: **[BUILD.md](BUILD.md)**.
+
 Load it: Chrome `chrome://extensions` -> Developer mode -> **Load unpacked** -> `dist/chromium`.
 Firefox `about:debugging` -> **Load Temporary Add-on** -> `dist/firefox/manifest.json`.
 
