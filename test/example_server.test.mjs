@@ -293,6 +293,73 @@ test("a second connection is refused, and the first keeps working", async () => 
   }
 });
 
+// ─── It survives being refused ───────────────────────────────────────────
+
+test("a refused handshake does not kill the server", async () => {
+  // The bug this pins made the first run impossible, and every test above
+  // passed while it was there -- each one connects once and stops caring.
+  //
+  // The extension reconnects on its own using whatever token it still had
+  // stored from a previous pairing, so it dials in and is refused before anyone
+  // has opened the popup. The server exited on that disconnect. Restarting it
+  // printed a NEW token, the extension retried with the OLD one, and the loop
+  // closed: the server that existed to receive a pasted token was never alive
+  // when there was one to paste.
+  const s = await startServer();
+  try {
+    for (let i = 0; i < 3; i++) {
+      const bad = await connect(s.port, "moz-extension://abc");
+      assert.match(bad.status, /101/, `attempt ${i + 1}: server stopped upgrading`);
+      bad.send(hello({ token: "a-stale-token-from-a-previous-pairing" }));
+      assert.equal((await bad.next()).code, 1007);
+      bad.sock.destroy();
+      await new Promise((r) => setTimeout(r, 150));
+    }
+
+    // Still there, and the slot was released rather than held by the corpse.
+    const good = await connect(s.port, "moz-extension://abc");
+    assert.match(good.status, /101/, "the server died, or still thinks it is busy");
+    good.send(hello({ token: s.token }));
+    assert.equal(
+      (await good.next()).type, "welcome",
+      "the right token was refused after earlier failures, so the slot was never freed",
+    );
+    good.sock.destroy();
+  } finally {
+    s.stop();
+  }
+});
+
+test("a client that drops without a handshake frees the slot", async () => {
+  // Same failure, different cause: a socket that opens and closes in silence.
+  //
+  // A socket handed over by an HTTP upgrade is HALF-OPEN. The peer's FIN emits
+  // `end` and flips `readable` to false, but the socket stays writable and
+  // `close` never fires until this side ends it too -- so freeing the slot on
+  // `close` alone holds it forever, and every later connection is refused as
+  // "one is already open" by a peer that left minutes ago.
+  //
+  // Two mechanisms answer that, deliberately: ending our side on `end`, and
+  // evicting a holder that fails a liveness check at the moment a new client
+  // arrives. Either alone satisfies this test -- the redundancy is the point,
+  // since `end` does not fire for every way a peer can vanish. Removing BOTH
+  // fails here, which is what keeps this from being decoration.
+  const s = await startServer();
+  try {
+    const ghost = await connect(s.port, "moz-extension://abc");
+    ghost.sock.destroy();
+    await new Promise((r) => setTimeout(r, 1500));
+
+    const c = await connect(s.port, "moz-extension://abc");
+    assert.match(c.status, /101/, "the slot is still held by a socket that is gone");
+    c.send(hello({ token: s.token }));
+    assert.equal((await c.next()).type, "welcome");
+    c.sock.destroy();
+  } finally {
+    s.stop();
+  }
+});
+
 // ─── Keepalive ───────────────────────────────────────────────────────────
 
 test("ping is ignored, not treated as a violation", async () => {

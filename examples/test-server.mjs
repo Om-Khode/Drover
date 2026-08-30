@@ -161,6 +161,14 @@ function call(method, params = {}) {
 
 function refuse(code, reason) {
   console.log(`\n  REFUSED  ${code}  ${reason}`);
+  if (code === ERR.UNAUTHORIZED) {
+    // Overwhelmingly the first-run case: the extension still holds a token from
+    // whatever it was paired with before, and reconnects with it on its own
+    // before anyone has touched the popup. Saying so beats making the reader
+    // guess which of the four handshake checks failed.
+    console.log(`  The extension sent a different token. Open its popup, replace the
+  token with the one above, and press Connect.`);
+  }
   send({ type: "reject", code, reason });
   socket?.end();
 }
@@ -234,8 +242,13 @@ const HELP = `
   quit
 `;
 
+let rl = null;
+
 function prompt() {
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout, prompt: "> " });
+  // Once only. Reconnects run the demo again, and a second readline on the same
+  // stdin makes every keystroke arrive twice.
+  if (rl) return rl.prompt();
+  rl = readline.createInterface({ input: process.stdin, output: process.stdout, prompt: "> " });
   rl.prompt();
   rl.on("line", async (line) => {
     const [cmd, ...rest] = line.trim().split(/\s+/);
@@ -281,6 +294,16 @@ server.on("upgrade", (req, sock) => {
     console.log(`  refused a non-extension Origin: ${origin || "(none)"}`);
     sock.end("HTTP/1.1 403 Forbidden\r\n\r\n");
     return;
+  }
+  // Evict a dead holder before refusing anyone. Events alone are not enough:
+  // see the `end` handler below for why a departed peer can leave this slot
+  // occupied indefinitely. Liveness is checked here, at the only moment it
+  // matters, so a stale holder costs one refused connection rather than every
+  // future one.
+  if (socket && (socket.destroyed || socket.readable === false)) {
+    console.log("  evicted a dead connection.");
+    socket.destroy();
+    socket = null;
   }
   if (socket) {
     // One connection at a time: a second is refused, never swapped in, so a
@@ -330,17 +353,30 @@ server.on("upgrade", (req, sock) => {
           return console.log(`  unexpected frame type: ${frame.type}`);
       }
     },
-    () => {
-      console.log("\n  the extension disconnected.");
-      process.exit(0);
-    },
+    () => sock.end(),
   );
 
   sock.on("data", read);
   sock.on("error", () => {});
+
+  // A socket handed over by an HTTP upgrade is HALF-OPEN. When the peer goes
+  // away, Node emits `end` and flips `readable` to false, but the socket stays
+  // writable and `close` NEVER fires until this side ends it too. A server that
+  // frees the slot on `close` alone therefore holds it forever, and every later
+  // connection is refused as "one is already open" by a peer that is long gone.
+  sock.on("end", () => sock.end());
+
+  // Free the slot and keep listening, rather than exiting.
+  //
+  // Exiting here made the first run unusable. The extension reconnects on its
+  // own, using whatever token it still had stored, so it dials in and is
+  // refused before anyone has opened the popup -- and the server that was meant
+  // to be waiting for a paste had already quit. Restarting it printed a NEW
+  // token, the extension retried with the OLD one, and the loop closed.
   sock.on("close", () => {
-    console.log("\n  socket closed.");
-    process.exit(0);
+    if (socket === sock) socket = null;
+    pending.clear();
+    console.log("\n  disconnected. Still listening -- press Connect again.");
   });
 });
 
