@@ -3,7 +3,7 @@
   "name": "Drover",
   "version": "0.1.0",
   "description": "Drive this browser from a local program over a WebSocket. Primitives only - no model, no autonomy.",
-  "homepage_url": "https://github.com/Om-Khode/Drover",
+  "homepage_url": "https://github.com/Om-Khode/drover",
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",
